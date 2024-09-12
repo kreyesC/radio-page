@@ -94,11 +94,15 @@ const RadioLog = () => {
     useEffect(() => {
         if (lic && lic.length > 0) {
             setData(lic);
-
-            const nuevosSufijos = lic.map((dato) => dato.Indicativo.slice(-3));
-            setSufijos([...new Set(nuevosSufijos)]);
+            cargarSufijos();
         }
     }, [lic]);
+
+    const cargarSufijos = () => {
+        const nuevosSufijos = lic.map((dato) => dato.Indicativo.slice(-3));
+        setSufijos([...new Set(nuevosSufijos)]);
+
+    }
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -195,36 +199,40 @@ const RadioLog = () => {
         });
         setSufijos([]);
         setSufijoSeleccionado('');
-        setSufijoApoyos([]);
+        cargarSufijos();
     };
 
     const saveData = async () => {
         try {
-                const q = query(collection(firestore, 'users'), where('indicativo', '==', user.indicativo));
-                
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    const docRef = querySnapshot.docs[0].ref;
-                    await updateDoc(docRef, {
-                        logBook: [{
-                            apoyos: apoyos,
-                            sufijoApoyos: sufijoApoyos,
-                            logbook: rows,
-                            fecha: new Date()
-                        }],
-                    });
+            const q = query(collection(firestore, 'users'), where('indicativo', '==', user.indicativo));
     
-                    alert('Datos guardados correctamente');
-                } else {
-                    alert('No se encontró un proyecto con el requerimiento especificado');
-                }
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const docRef = querySnapshot.docs[0].ref;
+                const existingData = querySnapshot.docs[0].data().logBook || []; // Obtener el logBook existente o un array vacío si no existe
+                
+                // Agregar el nuevo registro al logBook existente
+                const newEntry = {
+                    apoyos: apoyos,
+                    sufijoApoyos: sufijoApoyos,
+                    logbook: rows,
+                    fecha: new Date()
+                };
+    
+                await updateDoc(docRef, {
+                    logBook: [...existingData, newEntry], // Combinar el logBook existente con el nuevo registro
+                });
+    
+                alert('Datos guardados correctamente');
+            } else {
+                alert('No se encontró un proyecto con el requerimiento especificado');
+            }
         } catch (error) {
             console.error("Error saving assignment: ", error);
             alert('Error al guardar los datos');
         }
-
-
     };
+    
 
     const addRow = () => {
         setRows((prevRows) => [
